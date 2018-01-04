@@ -33,11 +33,13 @@ log_file = Path().home() / '.track' / 'log.csv'
 def now():
     return datetime.datetime.utcnow()
 
+
 class WindowInfo:
     def __init__(self):
         self.id = None
         self.cl = None
         self.title = None
+
 
 def decode_string_property(obj, atom, default, error):
     try:
@@ -67,7 +69,6 @@ class GetWindowInfo:
     def __init__(self, disp, root):
         self.disp = disp
         self.root = root
-
 
         # Prepare the property names we use so they can be fed into X11 APIs
         self.NET_ACTIVE_WINDOW = disp.intern_atom('_NET_ACTIVE_WINDOW')
@@ -146,10 +147,8 @@ class WindowTracker(threading.Thread):
         while True:  # next_event() sleeps until we get an event
             self.handle_xevent(self.disp.next_event())
 
-
     def handle_xevent(self, event):
         # Loop through, ignoring events until we're notified of focus/title change
-        w = event.window
         if event.type != Xlib.X.PropertyNotify:
             return
 
@@ -178,6 +177,7 @@ record_dpy = display.Display()
 log_file.parent.mkdir(exist_ok=True)
 with log_file.open('a') as f:
     pass
+
 
 def lookup_keysym(keysym):
     for name in dir(XK):
@@ -235,7 +235,6 @@ class Reporter:
     def action_end(self):
         return self.last_action + self.max_idle_time
 
-
     def log(self):
         tnow = now()
 
@@ -280,17 +279,17 @@ class Reporter:
         for i, (tstart, tend, win) in enumerate(range_wins):
             # if returning from idle time, set earlier start times to now
             if was_idle and tstart < self.last_idle_end:
-                print('--- adjusting tstart of %s (%s--%s) to %s: resuming from idle' % ( win.cl[0], tstart, tend, self.last_idle_end))
+                print('--- adjusting tstart of %s (%s--%s) to %s: resuming from idle' % (win.cl[0], tstart, tend, self.last_idle_end))
                 tstart = self.last_idle_end
                 
             if tstart > self.action_end:
-                print('--- filtering %s (%s--%s): started after idle' % ( win.cl[0], tstart, tend))
+                print('--- filtering %s (%s--%s): started after idle' % (win.cl[0], tstart, tend))
                 continue
             if tend < self.last_write:
-                print('--- filtering %s (%s--%s): ended before last write' % ( win.cl[0], tstart, tend))
+                print('--- filtering %s (%s--%s): ended before last write' % (win.cl[0], tstart, tend))
                 continue
             if tend - tstart < datetime.timedelta(seconds=min_duration):
-                print('--- filtering %s (%s--%s): less than minimum duration' % ( win.cl[0], tstart, tend))
+                print('--- filtering %s (%s--%s): less than minimum duration' % (win.cl[0], tstart, tend))
                 continue
 
             s = tstart, tend, *win.cl, win.title
@@ -307,15 +306,13 @@ class Reporter:
             print('---', s)
             lines.append(s)
 
-
-
         if not lines:
             return
         lines = '\n'.join(lines) + '\n'
         with log_file.open('ab') as f:
             f.seek(0, 2)
             if not window_changed:
-                #amend last line
+                # amend last line
                 f.seek(-1 - last_writte_line_nbytes, 2)
                 f.truncate()
             f.write(lines.encode(encoding='utf-8'))
@@ -323,8 +320,6 @@ class Reporter:
         if was_idle:
             self.last_idle_start = None
         self.last_write = tnow
-
-
 
     def window_changed(self, window):
         n = now()
@@ -338,7 +333,6 @@ class Reporter:
         if is_idle:
             self.last_idle_end = n
             
-
 
 reporter = Reporter()
 
@@ -377,7 +371,7 @@ ctx = record_dpy.record_create_context(
         0,
         [record.AllClients],
         [{
-                'core_requests': (0, 0),
+v                'core_requests': (0, 0),
                 'core_replies': (0, 0),
                 'ext_requests': (0, 0, 0, 0),
                 'ext_replies': (0, 0, 0, 0),
