@@ -175,13 +175,6 @@ class WindowTracker(threading.Thread):
             self.listener(deepcopy(self.last))
 
 
-local_dpy = display.Display()
-record_dpy = display.Display()
-
-
-log_file.parent.mkdir(exist_ok=True)
-with log_file.open('a') as f:
-    pass
 
 
 def lookup_keysym(keysym):
@@ -216,6 +209,11 @@ def tail(f, window=1):
         end -= nread
     return b'\n'.join(b''.join(reversed(data)).splitlines()[-window:])
     
+log_file.parent.mkdir(exist_ok=True)
+with log_file.open('a') as f:
+    pass
+
+
 class Reporter:
     def __init__(self):
         self.last_write = now()
@@ -337,6 +335,8 @@ class Reporter:
 
 reporter = Reporter()
 
+local_dpy = display.Display()
+record_dpy = display.Display()
 
 def record_callback(reply):
     if reply.category != record.FromServer:
