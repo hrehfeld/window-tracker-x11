@@ -1,0 +1,10 @@
+[Unit]
+Description=Track X11 window usage into log file
+After=display-manager.service
+
+[Service]
+ExecStart=/usr/bin/window-tracker-x11
+Restart=always
+
+[Install]
+WantedBy=default.target
