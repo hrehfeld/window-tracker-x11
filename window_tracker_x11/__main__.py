@@ -209,13 +209,9 @@ def tail(f, window=1):
         end -= nread
     return b'\n'.join(b''.join(reversed(data)).splitlines()[-window:])
     
-log_file.parent.mkdir(exist_ok=True)
-with log_file.open('a') as f:
-    pass
-
-
 class Reporter:
-    def __init__(self):
+    def __init__(self, log_file):
+        self.log_file = log_file
         self.last_write = now()
         self.last_action = now()
         self.last_idle_start = None
@@ -267,7 +263,7 @@ class Reporter:
 
         SEP = ','
 
-        with log_file.open('rb') as f:
+        with self.log_file.open('rb') as f:
             last_written_line = tail(f)
         last_writte_line_nbytes = len(last_written_line)
         last_written_line = last_written_line.decode('utf-8')
@@ -308,7 +304,7 @@ class Reporter:
         if not lines:
             return
         lines = '\n'.join(lines) + '\n'
-        with log_file.open('ab') as f:
+        with self.log_file.open('ab') as f:
             f.seek(0, 2)
             if not window_changed:
                 # amend last line
@@ -333,63 +329,70 @@ class Reporter:
             self.last_idle_end = n
             
 
-reporter = Reporter()
-
-local_dpy = display.Display()
-record_dpy = display.Display()
-
-def record_callback(reply):
-    if reply.category != record.FromServer:
-        return
-    if reply.client_swapped:
-        print("* received swapped protocol data, cowardly ignored")
-        return
-    if not len(reply.data) or reply.data[0] < 2:
-        # not an event
-        return
-
-    data = reply.data
-    while len(data):
-        event, data = rq.EventField(None).parse_binary_value(data, record_dpy.display, None, None)
-
-        if event.type in [X.KeyPress, X.KeyRelease, X.ButtonPress, X.ButtonRelease, X.MotionNotify]:
-            reporter.user_activity(event)
+def main():
+    log_file.parent.mkdir(exist_ok=True)
+    with log_file.open('a') as f:
+        pass
 
 
-w = WindowTracker(local_dpy, reporter.window_changed)
-w.start()
+    reporter = Reporter(log_file)
+
+    local_dpy = display.Display()
+    record_dpy = display.Display()
+
+    def record_callback(reply):
+        if reply.category != record.FromServer:
+            return
+        if reply.client_swapped:
+            print("* received swapped protocol data, cowardly ignored")
+            return
+        if not len(reply.data) or reply.data[0] < 2:
+            # not an event
+            return
+
+        data = reply.data
+        while len(data):
+            event, data = rq.EventField(None).parse_binary_value(data, record_dpy.display, None, None)
+
+            if event.type in [X.KeyPress, X.KeyRelease, X.ButtonPress, X.ButtonRelease, X.MotionNotify]:
+                reporter.user_activity(event)
 
 
-# Check if the extension is present
-if not record_dpy.has_extension("RECORD"):
-    print("RECORD extension not found")
-    sys.exit(1)
-r = record_dpy.record_get_version(0, 0)
-print("RECORD extension version %d.%d" % (r.major_version, r.minor_version))
-
-# Create a recording context; we only want key and mouse events
-ctx = record_dpy.record_create_context(
-        0,
-        [record.AllClients],
-        [{
-                'core_requests': (0, 0),
-                'core_replies': (0, 0),
-                'ext_requests': (0, 0, 0, 0),
-                'ext_replies': (0, 0, 0, 0),
-                'delivered_events': (0, 0),
-                'device_events': (X.KeyPress, X.MotionNotify),
-                'errors': (0, 0),
-                'client_started': False,
-                'client_died': False,
-        }])
-# Enable the context; this only returns after a call to record_disable_context,
-# while calling the callback function in the meantime
-record_dpy.record_enable_context(ctx, record_callback)
-# Finally free the context
-record_dpy.record_free_context(ctx)
+    w = WindowTracker(local_dpy, reporter.window_changed)
+    w.start()
 
 
-def disable_context(disp, ctx):
-    disp.record_disable_context(ctx)
-    disp.flush()
-    
+    # Check if the extension is present
+    if not record_dpy.has_extension("RECORD"):
+        print("RECORD extension not found")
+        sys.exit(1)
+    r = record_dpy.record_get_version(0, 0)
+    print("RECORD extension version %d.%d" % (r.major_version, r.minor_version))
+
+    # Create a recording context; we only want key and mouse events
+    ctx = record_dpy.record_create_context(
+            0,
+            [record.AllClients],
+            [{
+                    'core_requests': (0, 0),
+                    'core_replies': (0, 0),
+                    'ext_requests': (0, 0, 0, 0),
+                    'ext_replies': (0, 0, 0, 0),
+                    'delivered_events': (0, 0),
+                    'device_events': (X.KeyPress, X.MotionNotify),
+                    'errors': (0, 0),
+                    'client_started': False,
+                    'client_died': False,
+            }])
+    # Enable the context; this only returns after a call to record_disable_context,
+    # while calling the callback function in the meantime
+    record_dpy.record_enable_context(ctx, record_callback)
+    # Finally free the context
+    record_dpy.record_free_context(ctx)
+
+
+    def disable_context(disp, ctx):
+        disp.record_disable_context(ctx)
+        disp.flush()
+
+main()
