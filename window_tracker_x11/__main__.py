@@ -1,2 +1,2 @@
-import track
+from . import track
 track.main()
