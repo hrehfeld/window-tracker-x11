@@ -11,9 +11,6 @@ from copy import deepcopy
 
 from contextlib import contextmanager
 
-# Change path so we find Xlib
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
 import Xlib
 from Xlib import X, XK, display
 from Xlib.ext import record
