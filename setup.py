@@ -14,7 +14,7 @@ from setuptools import find_packages, setup, Command
 # Package meta-data.
 NAME = 'window_tracker_x11'
 DESCRIPTION = 'Track and log what windows/apps you use when working with X11'
-URL = 'https://github.com/hrehfeld/py-window-tracker-x11'
+URL = 'https://github.com/hrehfeld/window-tracker-x11'
 EMAIL = 'windowtrackerx11@haukerehfeld.de'
 AUTHOR = 'Hauke Rehfeld'
 
