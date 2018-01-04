@@ -21,10 +21,10 @@ import time
 from pathlib import Path
 import subprocess
 
-min_duration = 5
-max_idle_time_seconds = 5
-reporting_interval = 5
 log_file = Path().home() / '.track' / 'log.csv'
+min_duration = datetime.timedelta(seconds=5)
+max_idle_time = datetime.timedelta(seconds=30)
+reporting_interval = datetime.timedelta(seconds=30)
 
 
 def now():
@@ -220,17 +220,13 @@ class Reporter:
         def loop():
             while True:
                 self.log()
-                time.sleep(reporting_interval)
+                time.sleep(reporting_interval.total_seconds())
         t = threading.Thread(target=loop)
         t.start()
 
     @property
-    def max_idle_time(self):
-        return datetime.timedelta(seconds=max_idle_time_seconds)
-
-    @property
     def action_end(self):
-        return self.last_action + self.max_idle_time
+        return self.last_action + max_idle_time
 
     def log(self):
         tnow = now()
@@ -285,7 +281,7 @@ class Reporter:
             if tend < self.last_write:
                 print('--- filtering %s (%s--%s): ended before last write' % (win.cl[0], tstart, tend))
                 continue
-            if tend - tstart < datetime.timedelta(seconds=min_duration):
+            if tend - tstart < min_duration:
                 print('--- filtering %s (%s--%s): less than minimum duration' % (win.cl[0], tstart, tend))
                 continue
 
