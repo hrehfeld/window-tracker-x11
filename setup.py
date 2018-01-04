@@ -87,7 +87,7 @@ setup(
     entry_points={
         'console_scripts': ['window-tracker-x11=window_tracker_x11:main'],
     },
-    data_files=[('/usr/lib/systemd/user', ['window-tracker-x11.service'])],
+    data_files=[('lib/systemd/user', ['window-tracker-x11.service']), ('lib/%s' % NAME, ['config.py.sample'])],
     install_requires=REQUIRED,
     include_package_data=True,
     license='AGPLv3',
