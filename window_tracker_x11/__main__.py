@@ -371,7 +371,7 @@ ctx = record_dpy.record_create_context(
         0,
         [record.AllClients],
         [{
-v                'core_requests': (0, 0),
+                'core_requests': (0, 0),
                 'core_replies': (0, 0),
                 'ext_requests': (0, 0, 0, 0),
                 'ext_replies': (0, 0, 0, 0),
