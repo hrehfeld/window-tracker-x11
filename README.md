@@ -1,13 +1,13 @@
 # window-tracker-x11
-Track window/app usage when using X11 into a log file
+Track and log window/app usage when using X11 into a csv file
 
 
 ## Installation
 use 
 
 ```
-sudo pip3 install  window_tracker_x11
-``
+sudo pip3 install window_tracker_x11
+```
 
 to install. 
 
