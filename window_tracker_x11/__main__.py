@@ -21,10 +21,18 @@ import time
 from pathlib import Path
 import subprocess
 
-log_file = Path().home() / '.track' / 'log.csv'
+config_dir = Path().home() / '.config' / 'window-track-x11'
+
 min_duration = datetime.timedelta(seconds=5)
 max_idle_time = datetime.timedelta(seconds=30)
 reporting_interval = datetime.timedelta(seconds=30)
+
+if (config_dir / 'config.py').exists():
+    # Change path so we find config
+    sys.path.append(str(config_dir))
+    from config import min_duration, max_idle_time, reporting_interval
+
+log_file = config_dir / 'log.csv'
 
 
 def now():
