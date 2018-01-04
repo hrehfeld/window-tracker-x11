@@ -1,0 +1,5 @@
+from datetime import timedelta
+
+min_duration = timedelta(seconds=5)
+max_idle_time = timedelta(seconds=30)
+reporting_interval = timedelta(seconds=30)
