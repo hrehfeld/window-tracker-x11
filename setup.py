@@ -84,9 +84,10 @@ setup(
     # If your package is a single module, use this instead of 'packages':
     #py_modules=['window-track-x11'],
 
-    # entry_points={
-    #     'console_scripts': ['mycli=mymodule:cli'],
-    # },
+    entry_points={
+        'console_scripts': ['window-tracker-x11=window_tracker_x11:main'],
+    },
+    data_files=[('/usr/lib/systemd/user', ['window-tracker-x11.service'])],
     install_requires=REQUIRED,
     include_package_data=True,
     license='AGPLv3',
