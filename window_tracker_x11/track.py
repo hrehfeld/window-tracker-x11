@@ -19,16 +19,18 @@ import time
 from pathlib import Path
 import binascii
 
+
 config_dir = Path().home() / '.config' / 'window-track-x11'
 
 min_duration = datetime.timedelta(seconds=5)
+min_duration_title_change = datetime.timedelta(seconds=1)
 max_idle_time = datetime.timedelta(seconds=30)
 reporting_interval = datetime.timedelta(seconds=30)
 
 if (config_dir / 'config.py').exists():
     # Change path so we find config
     sys.path.append(str(config_dir))
-    from config import min_duration, max_idle_time, reporting_interval
+    from config import min_duration, min_duration_title_change, max_idle_time, reporting_interval
 
 log_file = config_dir / 'log.csv'
 
@@ -275,6 +277,59 @@ class Reporter:
             tend = tstart
         range_wins.reverse()
 
+        def idle_fix(e):
+            (tstart, tend, win) = e
+            # if returning from idle time, set earlier start times to now
+            if was_idle and tstart < self.last_idle_end:
+                print('--- adjusting tstart of %s (%s--%s) to %s: resuming from idle' % (win.cl[0], tstart, tend, self.last_idle_end))
+                tstart = self.last_idle_end
+            return (tstart, tend, win)
+                
+        def idle_filter(e):
+            (tstart, tend, win) = e
+            if tstart > self.action_end:
+                print('--- filtering %s (%s--%s): started after idle' % (win.cl[0], tstart, tend))
+                return False
+            if tend < self.last_write:
+                print('--- filtering %s (%s--%s): ended before last write' % (win.cl[0], tstart, tend))
+                return False
+            if tend - tstart < min_duration_title_change:
+                print('--- filtering %s (%s--%s): less than minimum duration for single title' % (win.cl[0], tstart, tend))
+                return False
+            return True
+
+
+        range_wins = [idle_fix(e) for e in range_wins]
+        range_wins = [e for e in range_wins if idle_filter(e)]
+
+        #sum window class durations for later filtering despite title changes
+        classes_durations = []
+        wins_classes = []
+        for i, data in enumerate(range_wins):
+            (tstart, tend, win) = data
+            duration = tend - tstart
+            k = win.cl[0]
+
+            if not wins_classes or wins_classes[-1][0] != k:
+                wins_classes.append((k, []))
+                classes_durations.append(datetime.timedelta(seconds=0))
+            wins_classes[-1][1].append(data)
+            classes_durations[-1] += duration
+
+
+        print(wins_classes)
+        print(classes_durations)
+
+
+        range_wins = []
+        for (_, entries), duration in zip(wins_classes, classes_durations):
+            if duration < min_duration:
+                print('--- filtering %s (%s--%s): less than minimum duration' % (win.cl[0], tstart, tend))
+                continue
+            range_wins += entries
+            
+
+
         SEP = ','
 
         with self.log_file.open('rb') as f:
@@ -286,21 +341,6 @@ class Reporter:
         window_changed = False
         lines = []
         for i, (tstart, tend, win) in enumerate(range_wins):
-            # if returning from idle time, set earlier start times to now
-            if was_idle and tstart < self.last_idle_end:
-                print('--- adjusting tstart of %s (%s--%s) to %s: resuming from idle' % (win.cl[0], tstart, tend, self.last_idle_end))
-                tstart = self.last_idle_end
-                
-            if tstart > self.action_end:
-                print('--- filtering %s (%s--%s): started after idle' % (win.cl[0], tstart, tend))
-                continue
-            if tend < self.last_write:
-                print('--- filtering %s (%s--%s): ended before last write' % (win.cl[0], tstart, tend))
-                continue
-            if tend - tstart < min_duration:
-                print('--- filtering %s (%s--%s): less than minimum duration' % (win.cl[0], tstart, tend))
-                continue
-
             s = tstart, tend, *win.cl, win.title
             s = [str(c).replace('"', r'"') for c in s]
             s = ['"%s"' % c for c in s]
@@ -314,6 +354,7 @@ class Reporter:
             s = SEP.join(s)
             print('---', s)
             lines.append(s)
+            last_program = win.cl
 
         if not lines:
             return
@@ -332,7 +373,7 @@ class Reporter:
 
     def window_changed(self, window):
         n = now()
-        print('EVENT:', window.cl[0])
+        print('EVENT:', *window.cl, window.title)
         self.windows.append((n, window))
 
     def user_activity(self, e):
@@ -340,6 +381,7 @@ class Reporter:
         is_idle = n > self.action_end
         self.last_action = n
         if is_idle:
+            print('idle end detected')
             self.last_idle_end = n
             
 
